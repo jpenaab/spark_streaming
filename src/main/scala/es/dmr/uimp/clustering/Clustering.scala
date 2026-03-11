@@ -44,13 +44,27 @@ object Clustering {
   }
 
   def featurizeData(df : DataFrame) : DataFrame = {
-   // TODO : Featurize the data
-    df
+    df.groupBy("InvoiceNo")
+      .agg(
+        avg("UnitPrice").alias("AvgUnitPrice"),
+        min("UnitPrice").alias("MinUnitPrice"),
+        max("UnitPrice").alias("MaxUnitPrice"),
+        avg("Hour").alias("Time"),
+        sum("Quantity").alias("NumberItems"),
+        first("CustomerID").alias("CustomerID"),
+        first("InvoiceDate").alias("InvoiceDate")
+    )
   }
 
   def filterData(df : DataFrame) : DataFrame = {
-   // TODO: Filter cancelations and invalid
-    df
+    df.filter(
+      !col("InvoiceNo").startsWith("C") &&
+      col("CustomerID").isNotNull &&
+      col("InvoiceDate").isNotNull &&
+      col("AvgUnitPrice").isNotNull &&
+      col("NumberItems") > 0 &&
+      col("AvgUnitPrice") > 0
+    )
   }
 
   def toDataset(df: DataFrame): RDD[Vector] = {
@@ -70,8 +84,12 @@ object Clustering {
   }
 
   def elbowSelection(costs: Seq[Double], ratio : Double): Int = {
-    // TODO: Select the best model
-    0
+    for (i <- 1 until costs.length) {
+      if (costs(i) / costs(i - 1) > ratio) {
+        return i - 1  // devolvemos el índice del modelo anterior (k-1)
+      }
+    }
+    costs.length - 1  // si nunca supera el ratio, devolvemos el último
   }
 
   def saveThreshold(threshold : Double, fileName : String) = {
